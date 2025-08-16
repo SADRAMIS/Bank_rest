@@ -5,7 +5,23 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-    <include file="db/migration/changes/001-initial-schema.sql" relativeToChangelogFile="true"/>
-    <include file="db/migration/changes/002-insert-initial-data.sql" relativeToChangelogFile="true"/>
+    <changeSet id="001-initial-schema" author="bank-app" runAlways="false">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="users"/>
+            </not>
+        </preConditions>
+        <include file="db/migration/changes/001-initial-schema.sql" relativeToChangelogFile="true"/>
+    </changeSet>
+
+    <changeSet id="002-insert-initial-data" author="bank-app" runAlways="false">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="users"/>
+                <sqlCheck expectedResult="0">SELECT COUNT(*) FROM users</sqlCheck>
+            </and>
+        </preConditions>
+        <include file="db/migration/changes/002-insert-initial-data.sql" relativeToChangelogFile="true"/>
+    </changeSet>
 
 </databaseChangeLog>

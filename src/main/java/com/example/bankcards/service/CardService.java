@@ -9,7 +9,6 @@ import com.example.bankcards.exception.CardNotFoundException;
 import com.example.bankcards.exception.UnauthorizedException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.util.CardNumberUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,15 +23,17 @@ import java.math.BigDecimal;
 @Transactional
 public class CardService {
     
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
+    private final UserService userService;
+    private final CardNumberUtil cardNumberUtil;
     
-    @Autowired
-    private UserService userService;
+    public CardService(CardRepository cardRepository, UserService userService, CardNumberUtil cardNumberUtil) {
+        this.cardRepository = cardRepository;
+        this.userService = userService;
+        this.cardNumberUtil = cardNumberUtil;
+    }
     
-    @Autowired
-    private CardNumberUtil cardNumberUtil;
-    
+    @Transactional
     public CardDto createCard(CreateCardDto createCardDto, Long userId) {
         User user = userService.getUserEntityById(userId);
         
@@ -51,6 +52,7 @@ public class CardService {
         return convertToDto(savedCard);
     }
     
+    @Transactional(readOnly = true)
     public CardDto getCardById(Long cardId, Long userId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
@@ -62,6 +64,7 @@ public class CardService {
         return convertToDto(card);
     }
     
+    @Transactional(readOnly = true)
     public Page<CardDto> getUserCards(Long userId, Pageable pageable, CardStatus status, String owner) {
         Page<Card> cards;
         
@@ -74,6 +77,7 @@ public class CardService {
         return cards.map(this::convertToDto);
     }
     
+    @Transactional
     public CardDto updateCardStatus(Long cardId, CardStatus status, Long userId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
@@ -87,6 +91,7 @@ public class CardService {
         return convertToDto(savedCard);
     }
     
+    @Transactional
     public void deleteCard(Long cardId, Long userId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
@@ -98,12 +103,14 @@ public class CardService {
         cardRepository.delete(card);
     }
     
+    @Transactional(readOnly = true)
     public List<CardDto> getAllCards() {
         return cardRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
+    @Transactional
     public CardDto updateCardBalance(Long cardId, Long userId, BigDecimal newBalance) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
@@ -117,6 +124,7 @@ public class CardService {
         return convertToDto(savedCard);
     }
     
+    @Transactional
     public void checkAndUpdateExpiredCards() {
         LocalDate today = LocalDate.now();
         List<Card> expiredCards = cardRepository.findExpiredCards(today);
@@ -129,11 +137,13 @@ public class CardService {
         }
     }
     
+    @Transactional(readOnly = true)
     public Card getCardEntityById(Long cardId) {
         return cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
     }
     
+    @Transactional
     public Card saveCard(Card card) {
         return cardRepository.save(card);
     }

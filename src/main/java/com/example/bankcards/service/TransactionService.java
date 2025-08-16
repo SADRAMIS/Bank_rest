@@ -8,7 +8,6 @@ import com.example.bankcards.exception.CardNotFoundException;
 import com.example.bankcards.exception.InsufficientBalanceException;
 import com.example.bankcards.exception.UnauthorizedException;
 import com.example.bankcards.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,12 +22,15 @@ import java.util.stream.Collectors;
 @Transactional
 public class TransactionService {
     
-    @Autowired
-    private TransactionRepository transactionRepository;
+    private final TransactionRepository transactionRepository;
+    private final CardService cardService;
     
-    @Autowired
-    private CardService cardService;
+    public TransactionService(TransactionRepository transactionRepository, CardService cardService) {
+        this.transactionRepository = transactionRepository;
+        this.cardService = cardService;
+    }
     
+    @Transactional
     public TransactionDto createTransaction(TransactionDto transactionDto, Long userId) {
         Card fromCard = cardService.getCardEntityById(transactionDto.getFromCardId());
         Card toCard = cardService.getCardEntityById(transactionDto.getToCardId());
@@ -59,6 +61,7 @@ public class TransactionService {
         return executeTransaction(savedTransaction);
     }
     
+    @Transactional
     private TransactionDto executeTransaction(Transaction transaction) {
         try {
             Card fromCard = transaction.getFromCard();
@@ -87,6 +90,7 @@ public class TransactionService {
         }
     }
     
+    @Transactional(readOnly = true)
     public TransactionDto getTransactionById(Long transactionId, Long userId) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Транзакция не найдена"));
@@ -100,17 +104,20 @@ public class TransactionService {
         return convertToDto(transaction);
     }
     
+    @Transactional(readOnly = true)
     public Page<TransactionDto> getUserTransactions(Long userId, Pageable pageable, TransactionStatus status) {
         Page<Transaction> transactions = transactionRepository.findByUserIdAndStatus(userId, status, pageable);
         return transactions.map(this::convertToDto);
     }
     
+    @Transactional(readOnly = true)
     public List<TransactionDto> getAllTransactions() {
         return transactionRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
+    @Transactional
     public TransactionDto cancelTransaction(Long transactionId, Long userId) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new RuntimeException("Транзакция не найдена"));
